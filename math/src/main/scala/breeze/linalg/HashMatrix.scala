@@ -5,6 +5,9 @@ import scala.{specialized => spec}
 import breeze.collection.mutable.OpenAddressHashArray
 import breeze.storage.Zero
 import scala.reflect.ClassTag
+import breeze.linalg.operators.HashMatrixOpsLowPrio
+import breeze.linalg.operators.MatrixOps
+import breeze.linalg.operators.HashMatrixOps_Ring
 
 class HashMatrix[@spec(Double, Int, Float, Long) V: Zero](val harray: OpenAddressHashArray[V],
                                                          val rows: Int,
@@ -64,10 +67,21 @@ class HashMatrix[@spec(Double, Int, Float, Long) V: Zero](val harray: OpenAddres
   def activeValuesIterator: Iterator[V] =  harray.activeValuesIterator
 
   def activeSize: Int = harray.activeSize
+
+  override def toString(maxLines: Int, maxWidth: Int): String = {
+    val buf = new StringBuilder()
+    buf ++= ("%d x %d HashMatrix".format(rows, cols))
+    activeIterator.take(maxLines - 1).foreach { case ((r,c),v) =>
+      buf += '\n'
+      buf ++= "(%d,%d) ".format(r,c)
+      buf ++= v.toString
+    }
+    buf.toString()
+  }
 }
 
 
-object HashMatrix extends MatrixConstructors[HashMatrix] {
+object HashMatrix extends MatrixConstructors[HashMatrix] with HashMatrixOps_Ring/*with MatrixOpswith HashMatrixOpsLowPrio*/{
 
 
   def zeros[@spec(Double, Int, Float, Long) V:ClassTag:Zero](rows: Int, cols: Int): HashMatrix[V] = {
