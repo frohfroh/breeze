@@ -79,7 +79,7 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
   }
 
 
-  //not good for multiplying DenseMatrix  
+  //probably not good for multiplying DenseMatrix  
   implicit def canMulM_M_Semiring[T: Semiring : Zero : ClassTag]: OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]] =
     new OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]] {
       def apply(a: HashMatrix[T], b: Matrix[T]) = {
@@ -99,6 +99,7 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
 		res
       }
     }
+
 
 }
 //I don't know what is this used for
