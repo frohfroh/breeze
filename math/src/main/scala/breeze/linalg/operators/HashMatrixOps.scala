@@ -6,6 +6,7 @@ import breeze.math.Semiring
 import breeze.storage.Zero
 import breeze.collection.mutable.OpenAddressHashArray
 import breeze.math.Field
+import breeze.macros.expand
 
 import scala.reflect.ClassTag
 
@@ -125,7 +126,20 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
 
-
+//implements HashMatrix * scalar
+  @expand
+  implicit def canMulM_S_Ring[@expand.args(OpMulMatrix,OpMulScalar) Op <: OpType, T:Ring:ClassTag]: Op.Impl2[HashMatrix[T],T,HashMatrix[T]] = {
+    val ring = implicitly[Ring[T]]
+    new Op.Impl2[HashMatrix[T], T, HashMatrix[T]] {
+      def apply(hm: HashMatrix[T], v2: T): HashMatrix[T] = {
+		val ans = HashMatrix.zeros[T](hm.rows,hm.cols)
+		for(((f,t),v) <- hm.activeIterator){
+			ans(f,t) = ring.*(v, v2) 
+	  }
+		ans
+      }
+    }
+  }
 
 }
 //I don't know what is this used for
