@@ -110,11 +110,21 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
         val zero = s.zero
       override def apply(v: HashMatrix[T], v2: T): DenseMatrix[T] = {
 		val dm = v.toDenseMatrix
-		//val re = dm + v2
-		//re
 		dm + v2
       }
     }
+
+//Same thing as above for HashMatrix - scalar
+  implicit def canSubM_S_Ring[T: Semiring : ClassTag :Field:Zero]: OpSub.Impl2[HashMatrix[T], T, DenseMatrix[T]] =
+    new OpSub.Impl2[HashMatrix[T], T, DenseMatrix[T]] {
+        val s = implicitly[Semiring[T]]
+        val zero = s.zero
+      override def apply(v: HashMatrix[T], v2: T): DenseMatrix[T] = {
+		val dm = v.toDenseMatrix
+		dm - v2
+      }
+    }
+
 
 
 }
