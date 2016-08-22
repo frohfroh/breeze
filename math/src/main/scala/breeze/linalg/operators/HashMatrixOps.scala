@@ -5,6 +5,7 @@ import breeze.math.Ring
 import breeze.math.Semiring
 import breeze.storage.Zero
 import breeze.collection.mutable.OpenAddressHashArray
+import breeze.math.Field
 
 import scala.reflect.ClassTag
 
@@ -97,6 +98,21 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
 		}
         
 		res
+      }
+    }
+
+//implements HashMatrix + scalar
+//If you're adding something, you accept loosing sparcity
+//In the rare case where you're adding zero, if you want to keep sparcity, you must test it for yourself
+  implicit def canAddM_S_Semiring[T: Semiring : ClassTag :Field:Zero]: OpAdd.Impl2[HashMatrix[T], T, DenseMatrix[T]] =
+    new OpAdd.Impl2[HashMatrix[T], T, DenseMatrix[T]] {
+        val s = implicitly[Semiring[T]]
+        val zero = s.zero
+      override def apply(v: HashMatrix[T], v2: T): DenseMatrix[T] = {
+		val dm = v.toDenseMatrix
+		//val re = dm + v2
+		//re
+		dm + v2
       }
     }
 
