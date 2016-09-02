@@ -132,15 +132,31 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     val ring = implicitly[Ring[T]]
     new Op.Impl2[HashMatrix[T], T, HashMatrix[T]] {
       def apply(hm: HashMatrix[T], v2: T): HashMatrix[T] = {
-		val ans = HashMatrix.zeros[T](hm.rows,hm.cols)
+		val res = HashMatrix.zeros[T](hm.rows,hm.cols)
 		for(((f,t),v) <- hm.activeIterator){
-			ans(f,t) = ring.*(v, v2) 
+			res(f,t) = ring.*(v, v2) 
 	  }
-		ans
+		res
       }
     }
   }
-
+//implements HashMatrix * HashMatrix
+//TODO generalize for sparce matrix and assure we're doing the for-loop on the sparsest
+  implicit def HashMatrixCanMulScalarM_M_Semiring[A: Semiring : ClassTag : Zero]: OpMulScalar.Impl2[HashMatrix[A], Matrix[A], HashMatrix[A]] =
+    new OpMulScalar.Impl2[HashMatrix[A], Matrix[A], HashMatrix[A]] {
+      val ring = implicitly[Semiring[A]]
+      final def apply(a: HashMatrix[A], b: Matrix[A]): HashMatrix[A] = {
+        val rows = a.rows
+        val cols = a.cols
+        require(rows == b.rows, "Matrices must have same number of rows!")
+        require(cols == b.cols, "Matrices must have same number of cols!")
+		val res = HashMatrix.zeros[A](a.rows,a.cols)
+		for(((f,t),v) <- a.activeIterator){
+			res(f,t) = ring.*(v, b(f,t)) 
+	  	}
+        res
+      }
+    }
 }
 //I don't know what is this used for
 //this trait is pure cargo cult programming
