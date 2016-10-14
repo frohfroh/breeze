@@ -7,8 +7,10 @@ import breeze.storage.Zero
 import breeze.collection.mutable.OpenAddressHashArray
 import breeze.math.Field
 import breeze.macros.expand
+//import breeze.generic.UFunc
 
 import scala.reflect.ClassTag
+
 
 
 //OpAdd, OpSub, OpMulScalar, OpMulMatrix, OpDiv, OpSet, OpMod, OpPow)
@@ -184,7 +186,7 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     }
   }
 
-  //implements HashMatrix + HashMatrix
+  //implements HashMatrix - HashMatrix
   implicit def HashMatrixCanSub_M_M_Ring[A:Ring:Zero:ClassTag]: OpSub.Impl2[HashMatrix[A], HashMatrix[A], HashMatrix[A]] =
   new OpSub.Impl2[HashMatrix[A], HashMatrix[A], HashMatrix[A]] {
     val ring = implicitly[Ring[A]]
@@ -196,6 +198,37 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
         res(f,t) = ring.-(v, a(f,t))
       }
       res
+    }
+  }
+
+  //used for HashMatrix / scalar , HashMatrix % scalar  and HashMatrix ^:^ scalar
+  @expand
+  implicit def hash_T_Op[@expand.args(OpDiv, OpMod, OpPow) Op <: OpType, T:Field:ClassTag]
+  (implicit @expand.sequence[Op]({f./(_,_)}, {f.%(_,_)},{f.pow(_,_)}) op: Op.Impl2[T,T,T]):
+  Op.Impl2[HashMatrix[T], T, HashMatrix[T]] = {
+    val f = implicitly[Field[T]]
+    new Op.Impl2[HashMatrix[T], T, HashMatrix[T]] {
+      def apply(a: HashMatrix[T], b: T): HashMatrix[T] = {
+        if (b == f.zero) {
+          // degenerate case, creates effectively dense matrix
+          val default = op(f.zero, b)
+          val res =  HashMatrix.zeros[T](a.rows,a.cols)
+          for(i <- 0 until a.rows ; j <- 0 until a.cols){
+            res(i,j) = default
+          }
+          //don't care about performance, one shouldn't use HashMatrix with this ops and zero anyway
+          for(((fr,t),v) <- a.activeIterator){
+            res(fr,t) = op(v, b)
+          }
+          res
+        } else {
+          val res =  HashMatrix.zeros[T](a.rows,a.cols)
+          for(((fr,t),v) <- a.activeIterator){
+            res(fr,t) = op(v, b)
+          }
+          res
+        }
+      }
     }
   }
 
