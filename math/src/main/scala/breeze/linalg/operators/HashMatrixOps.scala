@@ -19,11 +19,9 @@ import scala.reflect.ClassTag
 
 trait HashMatrixOps_Ring extends HashMatrixOpsLowPrio /*with SerializableLogging*/ {
   //this: CSCMatrixOps =>
+//implements - HashMatrix 
 implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     new OpNeg.Impl[HashMatrix[T], HashMatrix[T]] {
-	  println("usei "+
-			" implicit def hash_OpNeg[T:Ring:ClassTag]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]]"+
-			"de HashMatrixOps_Ring")
       val ring = implicitly[Ring[T]]
       def apply(a: HashMatrix[T]): HashMatrix[T] = {
         val acp = a.copy
@@ -81,13 +79,14 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
   }
 
 
-  //probably not good for multiplying DenseMatrix  
+  //probably not good for multiplying DenseMatrix 
+  //implements HashMatrix * Matrix 
   implicit def canMulM_M_Semiring[T: Semiring : Zero : ClassTag]: OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]] =
     new OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]] {
       def apply(a: HashMatrix[T], b: Matrix[T]) = {
         val ring = implicitly[Semiring[T]]
         require(a.cols == b.rows, "HashMatrix Multiplication Dimension Mismatch")
-
+	println("using implicit def canMulM_M_Semiring[T: Semiring : Zero : ClassTag]: OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]]")
         val res = HashMatrix.zeros[T](a.rows, b.cols)
 
 		val byCol = a.activeIterator.toList.groupBy(_._1._2)
@@ -140,9 +139,10 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
   }
-//implements HashMatrix * HashMatrix
-//TODO generalize for sparce matrix and assure we're doing the for-loop on the sparsest
-  implicit def HashMatrixCanMulScalarM_M_Semiring[A: Semiring : ClassTag : Zero]: OpMulScalar.Impl2[HashMatrix[A], Matrix[A], HashMatrix[A]] =
+//implements HashMatrix *:* Matrix
+//TODO generalize for sparse matrix and assure we're doing the for-loop on the sparsest
+  @expand
+  implicit def HashMatrixCanMulScalarM_M_Semiring[@expand.args(Int, Long, Float, Double) A: Semiring : ClassTag : Zero]: OpMulScalar.Impl2[HashMatrix[A], Matrix[A], HashMatrix[A]] =
     new OpMulScalar.Impl2[HashMatrix[A], Matrix[A], HashMatrix[A]] {
       val ring = implicitly[Semiring[A]]
       final def apply(a: HashMatrix[A], b: Matrix[A]): HashMatrix[A] = {
@@ -157,6 +157,50 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
         res
       }
     }
+/*
+ @expand
+  implicit def op_M_DM[@expand.args(Int, Long, Float, Double) T,
+  OpMulScalar]: BinaryRegistry[HashMatrix[T], Matrix[T], OpMulScalar.type, HashMatrix[T]] = {
+    new BinaryRegistry[HashMatrix[T], Matrix[T], OpMulScalar.type, HashMatrix[T]] {
+      override def bindingMissing(a : HashMatrix[T], b: Matrix[T]) = {
+		println("usei implicit def op_M_DM[@expand.args(Int, Long, Float, Double) T,  ")
+        HashMatrix.zeros[T](2,2)
+      }
+    }
+  }
+*/
+//implements HashMatrix + HashMatrix
+ implicit def HashMatrixCanAdd_M_M_Semiring[A:Semiring:Zero:ClassTag]: OpAdd.Impl2[HashMatrix[A], HashMatrix[A], HashMatrix[A]] =
+    new OpAdd.Impl2[HashMatrix[A], HashMatrix[A], HashMatrix[A]] {
+    val ring = implicitly[Semiring[A]]
+    def apply(a: HashMatrix[A], b: HashMatrix[A]): HashMatrix[A] = {
+      require(a.rows == b.rows, "Matrix dimensions must match")
+      require(a.cols == b.cols, "Matrix dimensions must match")
+	val res = a.copy
+	for(((f,t),v) <- b.activeIterator){
+		res(f,t) = ring.+(v, a(f,t)) 
+	}
+	res
+    }
+  }
+
+  //implements HashMatrix + HashMatrix
+  implicit def HashMatrixCanSub_M_M_Ring[A:Ring:Zero:ClassTag]: OpSub.Impl2[HashMatrix[A], HashMatrix[A], HashMatrix[A]] =
+  new OpSub.Impl2[HashMatrix[A], HashMatrix[A], HashMatrix[A]] {
+    val ring = implicitly[Ring[A]]
+    def apply(a: HashMatrix[A], b: HashMatrix[A]): HashMatrix[A] = {
+      require(a.rows == b.rows, "Matrix dimensions must match")
+      require(a.cols == b.cols, "Matrix dimensions must match")
+      val res = a.copy
+      for(((f,t),v) <- b.activeIterator){
+        res(f,t) = ring.-(v, a(f,t))
+      }
+      res
+    }
+  }
+
+
+  implicit def trioTriTosco = (2,"dois",2.0)
 }
 //I don't know what is this used for
 //this trait is pure cargo cult programming
