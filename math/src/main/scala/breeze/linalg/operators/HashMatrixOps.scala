@@ -92,7 +92,6 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       def apply(a: HashMatrix[T], b: Matrix[T]) = {
         val ring = implicitly[Semiring[T]]
         require(a.cols == b.rows, "HashMatrix Multiplication Dimension Mismatch")
-	println("using implicit def canMulM_M_Semiring[T: Semiring : Zero : ClassTag]: OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]]")
         val res = HashMatrix.zeros[T](a.rows, b.cols)
 
 		val byCol = a.activeIterator.toList.groupBy(_._1._2)
@@ -171,10 +170,10 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
 //implements HashMatrix *:* Matrix
 //TODO generalize for sparse matrix and assure we're doing the for-loop on the sparsest
   @expand
-  implicit def HashMatrixCanMulScalarM_M_Semiring[@expand.args(Int, Long, Float, Double) A: Semiring : ClassTag : Zero]: OpMulScalar.Impl2[HashMatrix[A], Matrix[A], HashMatrix[A]] =
-    new OpMulScalar.Impl2[HashMatrix[A], Matrix[A], HashMatrix[A]] {
+  implicit def HashMatrixCanMulScalarM_M_Semiring[@expand.args(Int, Long, Float, Double) A: Semiring : ClassTag : Zero , MM <: Matrix[A]]: OpMulScalar.Impl2[HashMatrix[A], MM, HashMatrix[A]] =
+    new OpMulScalar.Impl2[HashMatrix[A], MM, HashMatrix[A]] {
       val ring = implicitly[Semiring[A]]
-      final def apply(a: HashMatrix[A], b: Matrix[A]): HashMatrix[A] = {
+      final def apply(a: HashMatrix[A], b: MM): HashMatrix[A] = {
         val rows = a.rows
         val cols = a.cols
         require(rows == b.rows, "Matrices must have same number of rows!")
@@ -186,6 +185,9 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
         res
       }
     }
+
+
+
 /*
  @expand
   implicit def op_M_DM[@expand.args(Int, Long, Float, Double) T,
