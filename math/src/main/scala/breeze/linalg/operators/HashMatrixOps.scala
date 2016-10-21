@@ -295,6 +295,22 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
   }
+/*
+  @expand
+  implicit def hash_hash_UpdateOp[@expand.args(OpAdd, OpSub, OpMulScalar, OpSet, OpDiv,OpPow, OpMod) Op <: OpType, T:Field:ClassTag]
+  :OpAdd.InPlaceImpl2[HashMatrix[T], HashMatrix[T]] = {
+    println("using implicit def csc_csc_UpdateOp[@expand.args(OpAdd, OpSub, OpMulScalar, OpSet, OpDiv,OpPow, OpMod) Op <: OpType, T:Field:ClassTag]")
+    updateFromPure_CSC_CSC(implicitly[Op.Impl2[CSCMatrix[T],CSCMatrix[T],CSCMatrix[T]]])
+  }
+  */
+  /*
+  @expand
+  implicit def csc_csc_UpdateOp[@expand.args(OpAdd, OpSub, OpMulScalar, OpSet, OpDiv,OpPow, OpMod) Op <: OpType, T:Field:ClassTag]
+  :OpAdd.InPlaceImpl2[CSCMatrix[T], CSCMatrix[T]] = {
+    println("using implicit def csc_csc_UpdateOp[@expand.args(OpAdd, OpSub, OpMulScalar, OpSet, OpDiv,OpPow, OpMod) Op <: OpType, T:Field:ClassTag]")
+    updateFromPure_CSC_CSC(implicitly[Op.Impl2[CSCMatrix[T],CSCMatrix[T],CSCMatrix[T]]])
+  }
+  */
 //TODO HashMatrix *:* HashMatrix é densa
 
  //used for HashMatrix *= scalar & other similar ones
@@ -307,7 +323,24 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     updateFromPure_Hash_T( implicitly[Zero[T]]  , implicitly[Op.Impl2[HashMatrix[T], T, Matrix[T]]])
   }
 
+  //used for HashMatrix := HashMatrix
+  //not sure what the other expansions were used for in CSCMatrix, so kept the expand macro format for future implementation when I figure it out
+  @expand
+  implicit def Hash_Hash_UpdateOpG[@expand.args(OpSet) Op <: OpType, T:Field:ClassTag]
+  : Op.InPlaceImpl2[HashMatrix[T],HashMatrix[T]] = {
+    updateFromPure_Hash_T( implicitly[Zero[T]]  , implicitly[Op.Impl2[HashMatrix[T], HashMatrix[T], HashMatrix[T]]])
+  }
 
+  def test = {
+    import breeze.linalg._
+    val hmd = HashMatrix.zeros[Double](3,3)
+    hmd(1,1) = 1.0
+    val dmd = hmd.toDenseMatrix
+    val dv = DenseVector.zeros[Double](3)
+    val hmd2 = hmd.copy
+    //new BinaryUpdateRegistry[Matrix[T], Matrix[T], Op.type]
+   hmd.:=(hmd2)
+  }
   //TODO investigate this merry go round business
   /*
   @expand
