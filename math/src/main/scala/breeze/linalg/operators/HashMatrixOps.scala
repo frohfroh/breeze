@@ -5,8 +5,12 @@ import breeze.math.Ring
 import breeze.math.Semiring
 import breeze.storage.Zero
 import breeze.collection.mutable.OpenAddressHashArray
+import breeze.generic.UFunc
+import breeze.generic.UFunc.InPlaceImpl2
 import breeze.math.Field
 import breeze.macros.expand
+
+import scalaxy.debug._
 //import breeze.generic.UFunc
 
 import scala.reflect.ClassTag
@@ -127,6 +131,29 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
 
+
+
+
+
+  //used implicitly in Hash_T_UpdateOp
+  implicit def canSetM_S_Semiring[T: Semiring : ClassTag]: OpSet.Impl2[HashMatrix[T], T, HashMatrix[T]] =
+    new OpSet.Impl2[HashMatrix[T], T, HashMatrix[T]] {
+      val r = implicitly[Semiring[T]]
+      val zero = r.zero
+      def apply(v: HashMatrix[T], v2: T): HashMatrix[T] = {
+        val zm = HashMatrix.zeros[T](v.rows,v.cols)
+        if (v2 == zero)
+          return zm
+        //we shouldn't be here for a sparse matrix, so we don't care about performance
+        for(i <- 0 until v.rows){
+          for(j <- 0 until v.cols){
+            zm(i,j)   = v2
+          }
+        }
+        zm
+      }
+    }
+
 //implements HashMatrix * scalar
   @expand
   implicit def canMulM_S_Ring[@expand.args(OpMulMatrix,OpMulScalar) Op <: OpType, T:Ring:ClassTag]: Op.Impl2[HashMatrix[T],T,HashMatrix[T]] = {
@@ -231,8 +258,71 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
   }
+//TODO find out what this is supposed to do and how can I avoid loosing sparcity when settind a Hash matrix
+  //CSC does have this ability
+  //our copy is supposed to work though
+  implicit def HashMatrixCanSetM_M_Semiring[T:Semiring:ClassTag]: OpSet.Impl2[HashMatrix[T], HashMatrix[T], HashMatrix[T]] = {
+    val f = implicitly[Semiring[T]]
+    new OpSet.Impl2[HashMatrix[T], HashMatrix[T], HashMatrix[T]] {
+      def apply(a: HashMatrix[T], b: HashMatrix[T]): HashMatrix[T] = {
+        val rows  = a.rows
+        val cols  = a.cols
+        require(rows == b.rows, "Matrices must have same number of rows!")
+        require(cols == b.cols, "Matrices must have same number of cols!")
+        b.copy
+      }
+    }
+  }
+
+  //should be used for HashMatrix := Matrix
+  //which is used in turn for HashMatrix *= scalar & other similar ones
+  //unfourtunately a new matrix is created and all the non-zero values are copied unnecessarily
+  protected def updateFromPure_Hash_T[T:Zero, Op<:OpType, Other , MT <: Matrix[T]](implicit op: UFunc.UImpl2[Op, HashMatrix[T], Other, MT])
+  : UFunc.InPlaceImpl2[Op, HashMatrix[T], Other] = {
+    val zero = implicitly[Zero[T]]
+    new UFunc.InPlaceImpl2[Op, HashMatrix[T], Other] {
+      def apply(a: HashMatrix[T], b: Other) {
+        val result: MT = op(a, b)
+        //inefficient, but as written above, without a legitimate use case...
+        //We could use var for the arguments of a HashMatrix so to avoid copying from results to a...
+        //which is more or less what is done in CSCMatrix
+        for(((fr,t),v) <- a.activeIterator){
+          a(fr,t) = zero.zero
+        }
+        for(((fr,t),v) <- result.activeIterator){
+          a(fr,t) = v
+        }
+      }
+    }
+  }
+//TODO HashMatrix *:* HashMatrix é densa
+
+ //used for HashMatrix *= scalar & other similar ones
+  //for sparsity-losing operations, the not in place versions gives a DenseMatrix (eg Hashmatrix + Scalar =  DenseMatrix)
+  //the inplace operations must "keep" the HashMatrix, but use the not in place operations, copying the elements
+  //The zeros that may appear are not recovered and keep on wasting memory and time
+  @expand
+  implicit def Hash_T_UpdateOpG[@expand.args(OpMulMatrix, OpSet, OpSub, OpAdd, OpMulScalar, OpDiv, OpMod, OpPow) Op <: OpType, T:Field:ClassTag]
+  : Op.InPlaceImpl2[HashMatrix[T],T] = {
+    updateFromPure_Hash_T( implicitly[Zero[T]]  , implicitly[Op.Impl2[HashMatrix[T], T, Matrix[T]]])
+  }
 
 
+  //TODO investigate this merry go round business
+  /*
+  @expand
+  def Hash_T_UpdateOpMulMatrix[@expand.args(OpMulMatrix, OpSet,  OpMulScalar, OpDiv, OpMod, OpPow) Op <: OpType, T:Field:ClassTag ]
+  : Op.InPlaceImpl2[HashMatrix[T],T] = {
+    val a:  Op.Impl2[HashMatrix[T], T,  HashMatrix[T]]= implicitly[Op.Impl2[HashMatrix[T], T,  HashMatrix[T]]]
+    //for unknown reasons the following line does not work, but this merry -go-round does.
+    //val b : OpMulMatrix.Impl2[HashMatrix[T], T,  Matrix[T]] = a
+    val a2 : UFunc.UImpl2[Op.type, HashMatrix[T], T,  HashMatrix[T]] = a
+    val a3 : UFunc.UImpl2[Op.type, HashMatrix[T], T,  Matrix[T]] = a2
+    val a4 : Op.Impl2[HashMatrix[T], T,  Matrix[T]] = a3
+    updateFromPure_Hash_T2( implicitly[Zero[T]]  , a4)
+  }
+  */
+  //TODO remove this
   implicit def trioTriTosco = (2,"dois",2.0)
 }
 //I don't know what is this used for
