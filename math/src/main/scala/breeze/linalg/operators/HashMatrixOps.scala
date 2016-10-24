@@ -43,31 +43,6 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     }
   }
 
-  //This is used for creating some vector spaces and MutableFiniteCoordinateField.make
-  //There is some stuff defined explicitly for each matrix type in math\src\main\scala\breeze\math\VectorSpace.scala
-  //It is not clear what is this used for precisely
-  /*
-  implicit def hashScaleAdd[T: Semiring]: scaleAdd.InPlaceImpl3[HashMatrix[T], T, HashMatrix[T]] = {
-    new scaleAdd.InPlaceImpl3[HashMatrix[T], T, HashMatrix[T]] {
-      override def apply(a: HashMatrix[T], s: T, b: HashMatrix[T]): Unit = {
-	  println("usei "+
-			" implicit def hashScaleAdd[T: Semiring : ClassTag]: scaleAdd.InPlaceImpl3[HashMatrix[T], T, HashMatrix[T]]"+
-			"de HashMatrixOps_Ring")
-        val ring = implicitly[Semiring[T]]
-        require(a.rows == b.rows, "Matrices must have same number of rows!")
-        require(a.cols == b.cols, "Matrices must have same number of cols!")
-        val rows = a.rows
-        val cols = a.cols
-
-        if (cols == 0 || rows == 0) return
-
-		for(((f,t),v) <- b.activeIterator){
-			a(f,t) = ring.+(a(f,t), ring.*(s, v))
-		}
-      }
-    }
-  }
-  */
 
   //used for multiplying a HashMatrix with a vector
   implicit def canMulM_V_Semiring[T:Semiring:Zero:ClassTag]: BinaryRegistry[HashMatrix[T], Vector[T],OpMulMatrix.type, Vector[T]] =
@@ -168,7 +143,6 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     }
   }
 //implements HashMatrix *:* Matrix
-//TODO generalize for sparse matrix and assure we're doing the for-loop on the sparsest
   @expand
   implicit def HashMatrixCanMulScalarM_M_Semiring[@expand.args(Int, Long, Float, Double) A: Semiring : ClassTag : Zero , MM <: Matrix[A]]: OpMulScalar.Impl2[HashMatrix[A], MM, HashMatrix[A]] =
     new OpMulScalar.Impl2[HashMatrix[A], MM, HashMatrix[A]] {
@@ -186,20 +160,6 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
 
-
-
-/*
- @expand
-  implicit def op_M_DM[@expand.args(Int, Long, Float, Double) T,
-  OpMulScalar]: BinaryRegistry[HashMatrix[T], Matrix[T], OpMulScalar.type, HashMatrix[T]] = {
-    new BinaryRegistry[HashMatrix[T], Matrix[T], OpMulScalar.type, HashMatrix[T]] {
-      override def bindingMissing(a : HashMatrix[T], b: Matrix[T]) = {
-		println("usei implicit def op_M_DM[@expand.args(Int, Long, Float, Double) T,  ")
-        HashMatrix.zeros[T](2,2)
-      }
-    }
-  }
-*/
 //implements HashMatrix + HashMatrix
  implicit def HashMatrixCanAdd_M_M_Semiring[A:Semiring:Zero:ClassTag]: OpAdd.Impl2[HashMatrix[A], HashMatrix[A], HashMatrix[A]] =
     new OpAdd.Impl2[HashMatrix[A], HashMatrix[A], HashMatrix[A]] {
@@ -260,9 +220,8 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
   }
-//TODO find out what this is supposed to do and how can I avoid loosing sparcity when settind a Hash matrix
-  //CSC does have this ability
-  //our copy is supposed to work though
+
+
   implicit def HashMatrixCanSetM_M_Semiring[T:Semiring:ClassTag]: OpSet.Impl2[HashMatrix[T], HashMatrix[T], HashMatrix[T]] = {
     val f = implicitly[Semiring[T]]
     new OpSet.Impl2[HashMatrix[T], HashMatrix[T], HashMatrix[T]] {
@@ -297,23 +256,6 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
   }
-/*
-  @expand
-  implicit def hash_hash_UpdateOp[@expand.args(OpAdd, OpSub, OpMulScalar, OpSet, OpDiv,OpPow, OpMod) Op <: OpType, T:Field:ClassTag]
-  :OpAdd.InPlaceImpl2[HashMatrix[T], HashMatrix[T]] = {
-    println("using implicit def csc_csc_UpdateOp[@expand.args(OpAdd, OpSub, OpMulScalar, OpSet, OpDiv,OpPow, OpMod) Op <: OpType, T:Field:ClassTag]")
-    updateFromPure_CSC_CSC(implicitly[Op.Impl2[CSCMatrix[T],CSCMatrix[T],CSCMatrix[T]]])
-  }
-  */
-  /*
-  @expand
-  implicit def csc_csc_UpdateOp[@expand.args(OpAdd, OpSub, OpMulScalar, OpSet, OpDiv,OpPow, OpMod) Op <: OpType, T:Field:ClassTag]
-  :OpAdd.InPlaceImpl2[CSCMatrix[T], CSCMatrix[T]] = {
-    println("using implicit def csc_csc_UpdateOp[@expand.args(OpAdd, OpSub, OpMulScalar, OpSet, OpDiv,OpPow, OpMod) Op <: OpType, T:Field:ClassTag]")
-    updateFromPure_CSC_CSC(implicitly[Op.Impl2[CSCMatrix[T],CSCMatrix[T],CSCMatrix[T]]])
-  }
-  */
-//TODO HashMatrix *:* HashMatrix é densa
 
  //used for HashMatrix *= scalar & other similar ones
   //for sparsity-losing operations, the not in place versions gives a DenseMatrix (eg Hashmatrix + Scalar =  DenseMatrix)
@@ -343,40 +285,17 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     //new BinaryUpdateRegistry[Matrix[T], Matrix[T], Op.type]
    hmd.:=(hmd2)
   }
-  //TODO investigate this merry go round business
-  /*
-  @expand
-  def Hash_T_UpdateOpMulMatrix[@expand.args(OpMulMatrix, OpSet,  OpMulScalar, OpDiv, OpMod, OpPow) Op <: OpType, T:Field:ClassTag ]
-  : Op.InPlaceImpl2[HashMatrix[T],T] = {
-    val a:  Op.Impl2[HashMatrix[T], T,  HashMatrix[T]]= implicitly[Op.Impl2[HashMatrix[T], T,  HashMatrix[T]]]
-    //for unknown reasons the following line does not work, but this merry -go-round does.
-    //val b : OpMulMatrix.Impl2[HashMatrix[T], T,  Matrix[T]] = a
-    val a2 : UFunc.UImpl2[Op.type, HashMatrix[T], T,  HashMatrix[T]] = a
-    val a3 : UFunc.UImpl2[Op.type, HashMatrix[T], T,  Matrix[T]] = a2
-    val a4 : Op.Impl2[HashMatrix[T], T,  Matrix[T]] = a3
-    updateFromPure_Hash_T2( implicitly[Zero[T]]  , a4)
-  }
-  */
-  //TODO remove this
-  implicit def trioTriTosco = (2,"dois",2.0)
+
 }
-//I don't know what is this used for
-//this trait is pure cargo cult programming
+
 trait HashMatrixOpsLowPrio {
   //this: CSCMatrixOps =>
   implicit def canMulM_V_def[T, A, B <: Vector[T]](implicit bb: B <:< Vector[T], op: OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]) ={
-	println("usei "+
-			"  implicit def canMulM_V_def[T, A, B <: Vector[T]](implicit bb: B <:< Vector[T], op: OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]) ={"+
-			"de HashMatrixOps")
     implicitly[OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]].asInstanceOf[breeze.linalg.operators.OpMulMatrix.Impl2[A, B, Vector[T]]]
 }
   // ibid.
-  
 
 implicit def canMulM_M_def[T, B <: Matrix[T]](implicit bb: B <:< Matrix[T], op: OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]]) ={
-	println("usei "+
-		"canMulM_M_def[T, B <: Matrix[T]](implicit bb: B <:< Matrix[T], op: OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]])"
-		+"de HashMatrixOps")
     op.asInstanceOf[OpMulMatrix.Impl2[HashMatrix[T], B, HashMatrix[T]]]
 	}
 
