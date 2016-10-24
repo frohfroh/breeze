@@ -4,10 +4,13 @@ package breeze.linalg
 import scala.{specialized => spec}
 import breeze.collection.mutable.OpenAddressHashArray
 import breeze.storage.Zero
+
 import scala.reflect.ClassTag
 import breeze.linalg.operators.HashMatrixOpsLowPrio
 import breeze.linalg.operators.MatrixOps
 import breeze.linalg.operators.HashMatrixOps_Ring
+import breeze.linalg.support.CanMapValues
+import breeze.math.{Field, Semiring}
 
 class HashMatrix[@spec(Double, Int, Float, Long) V: Zero](val harray: OpenAddressHashArray[V],
                                                          val rows: Int,
@@ -102,5 +105,25 @@ object HashMatrix extends MatrixConstructors[HashMatrix] with HashMatrixOps_Ring
 		}
 		res
 	}
+
+  implicit def canMapValues[V: Zero, R:Field:ClassTag:Zero:Semiring]:CanMapValues[HashMatrix[V], V, R, HashMatrix[R]] = {
+    val z = implicitly[Zero[R]].zero
+    new CanMapValues[HashMatrix[V], V, R, HashMatrix[R]] {
+      override def apply(from: HashMatrix[V], fn: (V => R)) = {
+        val fz = fn(implicitly[Zero[V]].zero)
+        val fzIsNotZero = fz != z
+        val res = HashMatrix.zeros[R](from.rows, from.cols)
+        if(fzIsNotZero){
+          res := fz
+        }
+        for(((f,t),v) <- from.activeIterator){
+          res(f,t) = fn(v)
+        }
+        res
+      }
+    }
+  }
+
+
 
 }
