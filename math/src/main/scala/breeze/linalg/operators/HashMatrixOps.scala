@@ -1,12 +1,15 @@
 package breeze.linalg
 package operators
 
+import java.util
+
 import breeze.math.Ring
 import breeze.math.Semiring
 import breeze.storage.Zero
 import breeze.collection.mutable.OpenAddressHashArray
 import breeze.generic.UFunc
 import breeze.generic.UFunc.InPlaceImpl2
+import breeze.linalg.support.CanZipMapValues
 import breeze.math.Field
 import breeze.macros.expand
 
@@ -81,7 +84,16 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
 
-//implements HashMatrix + scalar
+
+  implicit def zipMapVals[S, R: Field : ClassTag : Semiring : Zero]: CanZipMapValues[HashMatrix[S], S, R, HashMatrix[R]] = new CanZipMapValues[HashMatrix[S], S, R, HashMatrix[R]] {
+    /** Maps all corresponding values from the two collections. */
+    override def map(a: HashMatrix[S], b: HashMatrix[S], fn: (S, S) => R): HashMatrix[R] = {
+      a.zipMapHeterogeneousVals(b,fn)
+    }
+  }
+
+
+  //implements HashMatrix + scalar
 //If you're adding something, you accept loosing sparcity
 //In the rare case where you're adding zero, if you want to keep sparcity, you must test it for yourself
   implicit def canAddM_S_Semiring[T: Semiring : ClassTag :Field:Zero]: OpAdd.Impl2[HashMatrix[T], T, DenseMatrix[T]] =
@@ -275,6 +287,7 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     updateFromPure_Hash_T( implicitly[Zero[T]]  , implicitly[Op.Impl2[HashMatrix[T], HashMatrix[T], HashMatrix[T]]])
   }
 
+  //TODO remove
   def test = {
     import breeze.linalg._
     val hmd = HashMatrix.zeros[Double](3,3)

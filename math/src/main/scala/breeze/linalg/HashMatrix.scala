@@ -9,8 +9,10 @@ import scala.reflect.ClassTag
 import breeze.linalg.operators.HashMatrixOpsLowPrio
 import breeze.linalg.operators.MatrixOps
 import breeze.linalg.operators.HashMatrixOps_Ring
-import breeze.linalg.support.CanMapValues
+import breeze.linalg.support.{CanMapValues, ScalarOf}
 import breeze.math.{Field, Semiring}
+
+import scalaxy.debug._
 
 class HashMatrix[@spec(Double, Int, Float, Long) V: Zero](val harray: OpenAddressHashArray[V],
                                                          val rows: Int,
@@ -81,6 +83,28 @@ class HashMatrix[@spec(Double, Int, Float, Long) V: Zero](val harray: OpenAddres
     }
     buf.toString()
   }
+
+  def zero = implicitly[Zero[V]].zero
+
+  //TODO break hashmatrix in two parts : a algebric and a pure data container
+  //the methodo above could then be broke into a zip and a separate map
+  def zipMapHeterogeneousVals[S , R: Field  : ClassTag : Semiring : Zero](that : HashMatrix[S],  fn: (V, S) => R ) : HashMatrix[R] = {
+    require(rows == that.rows, "Matrices must have same number of rows!")
+    require(cols == that.cols, "Matrices must have same number of cols!")
+
+    val res =  HashMatrix.zeros[R](rows, cols)
+    val rzero = implicitly[Zero[R]].zero
+
+    val fn00 = fn(this.zero,that.zero)
+    if(fn00!=rzero) { //a no-sparse operation, to be avoided
+      res := fn00
+    }
+    val commonActive = (activeKeysIterator.toSet).union(that.activeKeysIterator.toSet)
+    for((f,t) <- commonActive){
+      res(f,t) = fn(this(f,t),that(f,t))
+    }
+    res
+  }
 }
 
 
@@ -123,7 +147,7 @@ object HashMatrix extends MatrixConstructors[HashMatrix] with HashMatrixOps_Ring
       }
     }
   }
-
-
+  //TODO shouldn't this be in Matrix?
+  implicit def scalarOf[T]: ScalarOf[HashMatrix[T], T] = ScalarOf.dummy
 
 }
