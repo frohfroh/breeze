@@ -9,12 +9,12 @@ import scala.reflect.ClassTag
 import breeze.linalg.operators.HashMatrixOpsLowPrio
 import breeze.linalg.operators.MatrixOps
 import breeze.linalg.operators.HashMatrixOps_Ring
-import breeze.linalg.support.{CanMapValues, ScalarOf}
-import breeze.math.{Field, Semiring}
+import breeze.linalg.support.{CanMapValues, CanTranspose, ScalarOf}
+import breeze.math.{Complex, Field, Semiring}
 
 import scalaxy.debug._
 
-class HashMatrix[@spec(Double, Int, Float, Long) V: Zero](val harray: OpenAddressHashArray[V],
+class HashMatrix[@spec(Double, Int, Float, Long) V: Zero:ClassTag](val harray: OpenAddressHashArray[V],
                                                          val rows: Int,
                                                          val cols: Int) 
   extends Matrix[V] with MatrixLike[V, HashMatrix[V]] with Serializable{
@@ -28,7 +28,8 @@ class HashMatrix[@spec(Double, Int, Float, Long) V: Zero](val harray: OpenAddres
   }
 
   def linearIndex(row: Int, col: Int): Int = {
-      row + col * rows
+
+     row + col * rows
   }
 
  def cartesianIndex(lindex: Int): (Int,Int) = {
@@ -46,16 +47,19 @@ class HashMatrix[@spec(Double, Int, Float, Long) V: Zero](val harray: OpenAddres
 }
 
 
-
-  def flatten(view: View=View.Prefer): HashVector[V] = view match {
-    case View.Require =>
-      new HashVector(harray)
-    case View.Copy =>
-      new HashVector(harray.copy)
-    case View.Prefer =>
-      new HashVector(harray)
-}
-
+//we chose the wrong order, so we have to transpose before flattening
+//TODO change thw row column order so that  we don't need that and that we don't make copies in this function
+  def flatten(view: View=View.Prefer): HashVector[V] = {
+    val t: HashMatrix[V] = HashMatrix.canTranspose.apply(this)
+    view match {
+      case View.Require =>
+        new HashVector(t.harray)
+      case View.Copy =>
+        new HashVector(t.harray.copy)
+      case View.Prefer =>
+        new HashVector(t.harray)
+    }
+  }
 
   def copy: HashMatrix[V] = new HashMatrix(harray.copy , rows , cols)
 
@@ -149,5 +153,34 @@ object HashMatrix extends MatrixConstructors[HashMatrix] with HashMatrixOps_Ring
   }
   //TODO shouldn't this be in Matrix?
   implicit def scalarOf[T]: ScalarOf[HashMatrix[T], T] = ScalarOf.dummy
+
+
+  implicit def canTranspose[V:ClassTag: Zero]: CanTranspose[HashMatrix[V], HashMatrix[V]] = {
+    new CanTranspose[HashMatrix[V], HashMatrix[V]] {
+      def apply(from: HashMatrix[V]) = {
+
+        val transposedMtx = HashMatrix.zeros[V](from.cols , from.rows)
+        for(((f,t),v) <- from.activeIterator){
+          transposedMtx(t,f) = v
+        }
+        transposedMtx
+      }
+    }
+  }
+
+  implicit def canTransposeComplex: CanTranspose[HashMatrix[Complex], HashMatrix[Complex]] = {
+    new CanTranspose[HashMatrix[Complex], HashMatrix[Complex]] {
+      def apply(from: HashMatrix[Complex]) = {
+
+        val transposedMtx = HashMatrix.zeros[Complex](from.cols , from.rows)
+        for(((f,t),v) <- from.activeIterator){
+          transposedMtx(t,f) = v.conjugate
+        }
+        transposedMtx
+      }
+    }
+  }
+
+
 
 }

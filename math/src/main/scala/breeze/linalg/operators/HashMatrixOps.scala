@@ -28,19 +28,20 @@ import scala.reflect.ClassTag
 
 trait HashMatrixOps_Ring extends HashMatrixOpsLowPrio /*with SerializableLogging*/ {
   //this: CSCMatrixOps =>
-//implements - HashMatrix 
-implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
+  //implements - HashMatrix
+  implicit def hash_OpNeg[T: Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     new OpNeg.Impl[HashMatrix[T], HashMatrix[T]] {
       val ring = implicitly[Ring[T]]
+
       def apply(a: HashMatrix[T]): HashMatrix[T] = {
         val acp = a.copy
-		val harray : OpenAddressHashArray[T] = acp.harray
-		val data : Array[T] = harray.data
-		var i = 0
-		while(i<data.length){
-			data(i) = ring.negate(data(i))
-			i=i+1
-		}
+        val harray: OpenAddressHashArray[T] = acp.harray
+        val data: Array[T] = harray.data
+        var i = 0
+        while (i < data.length) {
+          data(i) = ring.negate(data(i))
+          i = i + 1
+        }
         acp
       }
     }
@@ -48,20 +49,20 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
 
 
   //used for multiplying a HashMatrix with a vector
-  implicit def canMulM_V_Semiring[T:Semiring:Zero:ClassTag]: BinaryRegistry[HashMatrix[T], Vector[T],OpMulMatrix.type, Vector[T]] =
-    new BinaryRegistry[HashMatrix[T], Vector[T], OpMulMatrix.type, Vector[T]] {
-    implicit val ring = implicitly[Semiring[T]]
+  implicit def canMulM_V_Semiring[T: Semiring : Zero : ClassTag]: BinaryRegistry[HashMatrix[T], Vector[T], OpMulMatrix.type, Vector[T]] ={
 
+  new BinaryRegistry[HashMatrix[T], Vector[T], OpMulMatrix.type, Vector[T]] {
+    implicit val ring = implicitly[Semiring[T]]
     override def bindingMissing(a: HashMatrix[T], b: Vector[T]) = {
       require(a.cols == b.length, "Dimension Mismatch!")
       val res = HashVector.zeros[T](a.rows)
-	  for(((f,t),v) <- a.activeIterator){
-			b(f) = ring.+(b(f) , ring.*(b(t),v)) 
-	  }
+      for (((f, t), v) <- a.activeIterator) {
+        res(f) = ring.+(res(f), ring.*(b(t), v))
+      }
       res
     }
   }
-
+}
 
   //probably not good for multiplying DenseMatrix 
   //implements HashMatrix * Matrix 
@@ -84,8 +85,10 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       }
     }
 
-
-  implicit def zipMapVals[S, R: Field : ClassTag : Semiring : Zero]: CanZipMapValues[HashMatrix[S], S, R, HashMatrix[R]] = new CanZipMapValues[HashMatrix[S], S, R, HashMatrix[R]] {
+  //not defined implicitly because it conflicts with many other methods like HashMatrix * HashMatrix
+  //not sure how other matrices avoid this problem; they do have a lot more "specializations "then HasHMatrix, so that may be it
+  //also am not aware of the use cases for this implicit, so just removed the implicit altogether
+  def zipMapVals[S, R: Field : ClassTag : Semiring : Zero]: CanZipMapValues[HashMatrix[S], S, R, HashMatrix[R]] = new CanZipMapValues[HashMatrix[S], S, R, HashMatrix[R]] {
     /** Maps all corresponding values from the two collections. */
     override def map(a: HashMatrix[S], b: HashMatrix[S], fn: (S, S) => R): HashMatrix[R] = {
       a.zipMapHeterogeneousVals(b,fn)
@@ -179,9 +182,9 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     def apply(a: HashMatrix[A], b: HashMatrix[A]): HashMatrix[A] = {
       require(a.rows == b.rows, "Matrix dimensions must match")
       require(a.cols == b.cols, "Matrix dimensions must match")
-	val res = a.copy
-	for(((f,t),v) <- b.activeIterator){
-		res(f,t) = ring.+(v, a(f,t)) 
+    val res = a.copy
+    for(((f,t),v) <- b.activeIterator){
+      res(f,t) = ring.+(v, a(f,t))
 	}
 	res
     }
@@ -196,7 +199,7 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
       require(a.cols == b.cols, "Matrix dimensions must match")
       val res = a.copy
       for(((f,t),v) <- b.activeIterator){
-        res(f,t) = ring.-(v, a(f,t))
+        res(f,t) = ring.-(a(f,t), v)
       }
       res
     }
@@ -280,9 +283,10 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
   }
 
   //used for HashMatrix := HashMatrix
-  //not sure what the other expansions were used for in CSCMatrix, so kept the expand macro format for future implementation when I figure it out
+  //OpMulMatrix  OpMulScalar OpDiv OpMod OpPow were removed
+  //TODO At least OpMulMatrix and OpMulScalar are legitimate operation and should be implemented
   @expand
-  implicit def Hash_Hash_UpdateOpG[@expand.args(OpSet) Op <: OpType, T:Field:ClassTag]
+  implicit def Hash_Hash_UpdateOpG[@expand.args( OpSet, OpSub, OpAdd ) Op <: OpType, T:Field:ClassTag]
   : Op.InPlaceImpl2[HashMatrix[T],HashMatrix[T]] = {
     updateFromPure_Hash_T( implicitly[Zero[T]]  , implicitly[Op.Impl2[HashMatrix[T], HashMatrix[T], HashMatrix[T]]])
   }
@@ -304,6 +308,7 @@ implicit def hash_OpNeg[T:Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
 trait HashMatrixOpsLowPrio {
   //this: CSCMatrixOps =>
   implicit def canMulM_V_def[T, A, B <: Vector[T]](implicit bb: B <:< Vector[T], op: OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]) ={
+    //val ilt = implicitly[OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]]
     implicitly[OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]].asInstanceOf[breeze.linalg.operators.OpMulMatrix.Impl2[A, B, Vector[T]]]
 }
   // ibid.
