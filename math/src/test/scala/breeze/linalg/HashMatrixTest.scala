@@ -1,22 +1,7 @@
 package breeze.linalg
 
-/*
- Licensed under the Apache License, Version 2.0 (the "License")
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-*/
 
 import breeze.linalg.operators.OpMulMatrix
-import breeze.linalg.support.CanZipMapValues
-import breeze.math.MutableOptimizationSpace.SparseFieldOptimizationSpace
 import breeze.math.{Complex, Field}
 import breeze.storage.Zero
 import org.scalatest._
@@ -34,16 +19,7 @@ class HashMatrixTest extends FunSuite with Checkers {
     val b = HashMatrix((7.0, -2.0, 8.0),(-3.0, -3.0, 1.0),(12.0, 0.0, 5.0))
     val bd = DenseMatrix((7.0, -2.0, 8.0),(-3.0, -3.0, 1.0),(12.0, 0.0, 5.0))
     val c = DenseVector(6.0,2.0,3.0)
-      /*
-      [error] C:\Pessoal\breeze\breezeMy\math\src\test\scala\breeze\linalg\HashMatrixTest.scala:36: ambiguous implicit values:
-    [error]  both method canMulM_M_def in trait HashMatrixOpsLowPrio of type [T, B <: breeze.linalg.Matrix[T]](implicit bb: <:<[B,breeze.linalg.Matrix[T]], implicit op: breeze.linalg.operators.OpMulMatrix.Impl2[breeze.linalg.HashMatrix[T],breeze.linalg.Matrix[T],breeze.linalg.HashMatrix[T]])breeze.linalg.operators.OpMulMatrix.Impl2[breeze.linalg.HashMatrix[T],B,breeze.linalg.HashMatrix[T]]
-      [error]  and method canZipMapValuesImpl in trait UFunc of type [T, V1, VR, U](implicit handhold: breeze.linalg.support.ScalarOf[T,V1], implicit impl: breeze.linalg.operators.OpMulMatrix.Impl2[V1,V1,VR], implicit canZipMapValues: breeze.linalg.support.CanZipMapValues[T,V1,VR,U])breeze.linalg.operators.OpMulMatrix.Impl2[T,T,U]
-      [error]  match expected type breeze.linalg.operators.OpMulMatrix.Impl2[breeze.linalg.HashMatrix[Double],breeze.linalg.HashMatrix[Double],That]
-      [error]     assert( (a * b: HashMatrix[Double]) === HashMatrix((37.0, -8.0, 25.0), (85.0, -23.0, 67.0)))
-    */
-    //val iv1 = HashMatrix.canMulM_M_def[Double , HashMatrix[Double]]
-   // val iv2
-    //mplicit def canMulM_M_def[T, B <: Matrix[T]](implicit bb: B <:< Matrix[T], op: OpMulMatrix.Impl2[HashMatrix[T], Matrix[T], HashMatrix[T]]) ={
+
     assert( (a * b: HashMatrix[Double]) === HashMatrix((37.0, -8.0, 25.0), (85.0, -23.0, 67.0)))
     assert((a * bd :HashMatrix[Double])=== HashMatrix((37.0, -8.0, 25.0), (85.0, -23.0, 67.0)))
     assert((ad * b :DenseMatrix[Double])=== DenseMatrix((37.0, -8.0, 25.0), (85.0, -23.0, 67.0)))
@@ -51,19 +27,24 @@ class HashMatrixTest extends FunSuite with Checkers {
     assert(a * c === DenseVector(19.0,52.0))
     assert(b * c === DenseVector(62.0, -21.0, 87.0))
 
-//    assert(b.t * c === DenseVector(72.0, -18.0, 65.0))
-//    assert(a.t * DenseVector(4.0, 3.0) === DenseVector(16.0, 23.0, 30.0))
 
-    // should be dense
-//    val x = a * a.t
-//    assert(x === DenseMatrix((14.0,32.0),(32.0,77.0)))
+    //given HashMatrix has a somewhat different behaviour then CSCMatrix
+    //because it is expected to be used in some extreme sparse ccases
+    //the following tests are no longer valid
+    //TODO Should one change the behaviour of HashMatrix or rewrite those tests?
+    //    assert(b.t * c === DenseVector(72.0, -18.0, 65.0))
+    //    assert(a.t * DenseVector(4.0, 3.0) === DenseVector(16.0, 23.0, 30.0))
 
-    // should be dense
-//    val y = a.t * a
-//    assert(y === DenseMatrix((17.0,22.0,27.0),(22.0,29.0,36.0),(27.0,36.0,45.0)))
+        // should be dense
+    //    val x = a * a.t
+    //    assert(x === DenseMatrix((14.0,32.0),(32.0,77.0)))
 
-//    val z : DenseMatrix[Double] = b * (b + 1.0)
-//    assert(z === DenseMatrix((164.0,5.0,107.0),(-5.0,10.0,-27.0),(161.0,-7.0,138.0)))
+        // should be dense
+    //    val y = a.t * a
+    //    assert(y === DenseMatrix((17.0,22.0,27.0),(22.0,29.0,36.0),(27.0,36.0,45.0)))
+
+    //    val z : DenseMatrix[Double] = b * (b + 1.0)
+    //    assert(z === DenseMatrix((164.0,5.0,107.0),(-5.0,10.0,-27.0),(161.0,-7.0,138.0)))
   }
 
   test("Multiply Int") {
@@ -78,6 +59,11 @@ class HashMatrixTest extends FunSuite with Checkers {
     assert(b * c === DenseVector(62, -21, 87))
     assert(a * cs === SparseVector(4, 10))
     assert(b * cs === SparseVector(3)((0, -4), (1, -6)))
+
+    //given HashMatrix has a somewhat different behaviour then CSCMatrix
+    //because it is expected to be used in some extreme sparse ccases
+    //the following tests are no longer valid
+    //TODO Should one change the behaviour of HashMatrix or rewrite those tests?
 
 //    assert(b.t * c === DenseVector(72, -18, 65))
 //    assert(a.t * DenseVector(4, 3) === DenseVector(16, 23, 30))
@@ -183,7 +169,9 @@ class HashMatrixTest extends FunSuite with Checkers {
     a += b
     assert(a === HashMatrix((1, 1, 0), (4,6,-2)))
     //zero cells are never "returned" anyway, could be an improvement
-   // assert(a.activeSize === 5)
+    //TODO reclaim zeroed cells?
+
+    // assert(a.activeSize === 5)
     a -= b
     a -= b
     assert(a === HashMatrix((1, -1, 0), (0,0,0)))
@@ -247,8 +235,6 @@ class HashMatrixTest extends FunSuite with Checkers {
     hashB(2,3) = 1.8
     hashB(2,0) = 1.6
     def testAddInPlace[T:Field:Zero:ClassTag](a: HashMatrix[T],b: HashMatrix[T]) = {
-      //val optspace = SparseFieldOptimizationSpace.sparseOptSpace[T]
-      //import optspace._
       a += b
     }
     testAddInPlace[Double](hashA,hashB)
@@ -261,8 +247,6 @@ class HashMatrixTest extends FunSuite with Checkers {
 
   test("HashxHash: OpSubInPlace2:Field") {
     def testSubInPlace[T:Field:Zero:ClassTag](a: HashMatrix[T],b: HashMatrix[T]) = {
-      //val optspace = SparseFieldOptimizationSpace.sparseOptSpace[T]
-      //import optspace._
       a -= b
     }
     val hashA = HashMatrix.zeros[Double](3,4)
@@ -280,8 +264,6 @@ class HashMatrixTest extends FunSuite with Checkers {
   }
   test("HashxHash: OpMulScalarInPlace2:Field") {
     def testMulScalarInPlace[T:Field:Zero:ClassTag](a: HashMatrix[T],b: HashMatrix[T]) = {
-      //val optspace = SparseFieldOptimizationSpace.sparseOptSpace[T]
-      //import optspace._
       a *= b
     }
     val hashA = HashMatrix.zeros[Double](3,4)
@@ -306,8 +288,6 @@ class HashMatrixTest extends FunSuite with Checkers {
 
   test("HashxHash: OpSetInPlace:Scalar:Field") {
     def testSetInPlace[T:Field:Zero:ClassTag](a: HashMatrix[T], b: T) = {
-      //val optspace = SparseFieldOptimizationSpace.sparseOptSpace[T]
-      //import optspace._
       a := b
     }
     val hashA = HashMatrix.zeros[Double](3,4)
@@ -320,10 +300,7 @@ class HashMatrixTest extends FunSuite with Checkers {
   test("ZipMapVals Test") {
     def testZipMap[T:Field:Zero:ClassTag](a: HashMatrix[T],b: HashMatrix[T]): HashMatrix[T] = {
       val f = implicitly[Field[T]]
-      //val optspace = SparseFieldOptimizationSpace.sparseOptSpace[T]
-     // import optspace._
       val addMapFn = (t1: T, t2: T) => f.+(t1,t2)
-      //val zipMapValuesM = implicitly[CanZipMapValues[HashMatrix[T], T, T, HashMatrix[T]]]
       val zmv = HashMatrix.zipMapVals[T,T]
       zmv.map(a,b,addMapFn)
     }
@@ -356,6 +333,7 @@ class HashMatrixTest extends FunSuite with Checkers {
     assert(a + b === a + b.toDenseMatrix)
   }
 
+  //TODO implement solve for HashMatrix
 /*
   test("HashMatrix Solve") {
     val r2 : DenseVector[Double] = HashMatrix((1.0,3.0,4.0),(2.0,0.0,6.0)) \ DenseVector(1.0,3.0)

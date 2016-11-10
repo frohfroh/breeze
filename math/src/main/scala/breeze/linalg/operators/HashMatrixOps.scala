@@ -1,33 +1,28 @@
 package breeze.linalg
 package operators
 
-import java.util
+//import java.util
 
 import breeze.math.Ring
 import breeze.math.Semiring
 import breeze.storage.Zero
 import breeze.collection.mutable.OpenAddressHashArray
 import breeze.generic.UFunc
-import breeze.generic.UFunc.InPlaceImpl2
 import breeze.linalg.support.CanZipMapValues
 import breeze.math.Field
 import breeze.macros.expand
 
 import scalaxy.debug._
-//import breeze.generic.UFunc
 
 import scala.reflect.ClassTag
 
 
 
 //OpAdd, OpSub, OpMulScalar, OpMulMatrix, OpDiv, OpSet, OpMod, OpPow)
-
-//operam elemento a elemento numa matriz e são caracterizadas pelos seguintes símbolos
-
+//are used by the following symbols
 //{_ + _},  {_ - _}, {_ * _}, {_ * _}, {_ / _}, {(a,b) => b}, {_ % _}, {_ pow _}
 
 trait HashMatrixOps_Ring extends HashMatrixOpsLowPrio /*with SerializableLogging*/ {
-  //this: CSCMatrixOps =>
   //implements - HashMatrix
   implicit def hash_OpNeg[T: Ring]: OpNeg.Impl[HashMatrix[T], HashMatrix[T]] = {
     new OpNeg.Impl[HashMatrix[T], HashMatrix[T]] {
@@ -88,6 +83,7 @@ trait HashMatrixOps_Ring extends HashMatrixOpsLowPrio /*with SerializableLogging
   //not defined implicitly because it conflicts with many other methods like HashMatrix * HashMatrix
   //not sure how other matrices avoid this problem; they do have a lot more "specializations "then HasHMatrix, so that may be it
   //also am not aware of the use cases for this implicit, so just removed the implicit altogether
+  //TODO find out what the implicit was good for
   def zipMapVals[S, R: Field : ClassTag : Semiring : Zero]: CanZipMapValues[HashMatrix[S], S, R, HashMatrix[R]] = new CanZipMapValues[HashMatrix[S], S, R, HashMatrix[R]] {
     /** Maps all corresponding values from the two collections. */
     override def map(a: HashMatrix[S], b: HashMatrix[S], fn: (S, S) => R): HashMatrix[R] = {
@@ -252,7 +248,7 @@ trait HashMatrixOps_Ring extends HashMatrixOpsLowPrio /*with SerializableLogging
 
   //should be used for HashMatrix := Matrix
   //which is used in turn for HashMatrix *= scalar & other similar ones
-  //unfourtunately a new matrix is created and all the non-zero values are copied unnecessarily
+  //unfortunately a new matrix is created and all the non-zero values are copied unnecessarily
   protected def updateFromPure_Hash_T[T:Zero, Op<:OpType, Other , MT <: Matrix[T]](implicit op: UFunc.UImpl2[Op, HashMatrix[T], Other, MT])
   : UFunc.InPlaceImpl2[Op, HashMatrix[T], Other] = {
     val zero = implicitly[Zero[T]]
@@ -291,24 +287,12 @@ trait HashMatrixOps_Ring extends HashMatrixOpsLowPrio /*with SerializableLogging
     updateFromPure_Hash_T( implicitly[Zero[T]]  , implicitly[Op.Impl2[HashMatrix[T], HashMatrix[T], HashMatrix[T]]])
   }
 
-  //TODO remove
-  def test = {
-    import breeze.linalg._
-    val hmd = HashMatrix.zeros[Double](3,3)
-    hmd(1,1) = 1.0
-    val dmd = hmd.toDenseMatrix
-    val dv = DenseVector.zeros[Double](3)
-    val hmd2 = hmd.copy
-    //new BinaryUpdateRegistry[Matrix[T], Matrix[T], Op.type]
-   hmd.:=(hmd2)
-  }
+
 
 }
 
 trait HashMatrixOpsLowPrio {
-  //this: CSCMatrixOps =>
   implicit def canMulM_V_def[T, A, B <: Vector[T]](implicit bb: B <:< Vector[T], op: OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]) ={
-    //val ilt = implicitly[OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]]
     implicitly[OpMulMatrix.Impl2[HashMatrix[T], Vector[T], Vector[T]]].asInstanceOf[breeze.linalg.operators.OpMulMatrix.Impl2[A, B, Vector[T]]]
 }
   // ibid.

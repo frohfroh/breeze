@@ -1,13 +1,10 @@
 package breeze.linalg
 
-//import breeze.linalg.HashVector
 import scala.{specialized => spec}
 import breeze.collection.mutable.OpenAddressHashArray
 import breeze.storage.Zero
 
 import scala.reflect.ClassTag
-import breeze.linalg.operators.HashMatrixOpsLowPrio
-import breeze.linalg.operators.MatrixOps
 import breeze.linalg.operators.HashMatrixOps_Ring
 import breeze.linalg.support.{CanMapValues, CanTranspose, ScalarOf}
 import breeze.math.{Complex, Field, Semiring}
@@ -151,7 +148,7 @@ object HashMatrix extends MatrixConstructors[HashMatrix] with HashMatrixOps_Ring
       }
     }
   }
-  //TODO shouldn't this be in Matrix?
+  //TODO wouldn't this be better placed in Matrix?
   implicit def scalarOf[T]: ScalarOf[HashMatrix[T], T] = ScalarOf.dummy
 
 
