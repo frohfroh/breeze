@@ -14,7 +14,7 @@ import scalaxy.debug._
 class HashMatrix[@spec(Double, Int, Float, Long) V: Zero:ClassTag](val harray: OpenAddressHashArray[V],
                                                          val rows: Int,
                                                          val cols: Int) 
-  extends Matrix[V] with MatrixLike[V, HashMatrix[V]] with Serializable{
+  extends Matrix[V] with MatrixLike[V, HashMatrix[V]] with Serializable with EquallyCopiable[HashMatrix[V]]{
 
   def apply(row: Int, col: Int): V = {
     if(row < - rows || row >= rows) throw new IndexOutOfBoundsException((row,col) + " not in [-"+rows+","+rows+") x [-"+cols+"," + cols+")")

@@ -55,7 +55,7 @@ final class DenseMatrix[@spec(Double, Int, Float, Long) V](val rows: Int,
                                                             val offset: Int,
                                                             val majorStride: Int,
                                                             val isTranspose: Boolean = false)
-  extends Matrix[V] with MatrixLike[V, DenseMatrix[V]] with Serializable {
+  extends Matrix[V] with MatrixLike[V, DenseMatrix[V]] with Serializable with EquallyCopiable[DenseMatrix[V]] {
 
 
   /** Creates a matrix with the specified data array, rows, and columns. */

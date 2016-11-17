@@ -36,6 +36,10 @@ trait MatrixLike[@spec(Double, Int, Float, Long) V, +Self  <: Matrix[V]] extends
 
 }
 
+trait EquallyCopiable[M]{
+  def copy: M
+}
+
 trait Matrix[@spec(Double, Int, Float, Long) V] extends MatrixLike[V, Matrix[V]] {
 
   final def apply(i: (Int, Int)) = apply(i._1, i._2)

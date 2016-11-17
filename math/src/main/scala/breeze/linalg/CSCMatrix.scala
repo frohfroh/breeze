@@ -44,7 +44,7 @@ class CSCMatrix[@spec(Double, Int, Float, Long) V: Zero](private var _data: Arra
                                                          val colPtrs: Array[Int], // len cols + 1
                                                          private var used : Int,
                                                          private var _rowIndices: Array[Int]) // len >= used
-  extends Matrix[V] with MatrixLike[V, CSCMatrix[V]] with Serializable {
+  extends Matrix[V] with MatrixLike[V, CSCMatrix[V]] with Serializable with EquallyCopiable[CSCMatrix[V]]{
 
   /**
    * Constructs a [[CSCMatrix]] instance. We don't validate the input data for performance reasons.
