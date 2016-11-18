@@ -36,7 +36,7 @@ trait MatrixLike[@spec(Double, Int, Float, Long) V, +Self  <: Matrix[V]] extends
 
 }
 
-trait EquallyCopiable[M]{
+trait EquallyCopiable[M <: Matrix[_]]{
   def copy: M
 }
 
