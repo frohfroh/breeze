@@ -327,6 +327,13 @@ final class DenseMatrix[@spec(Double, Int, Float, Long) V](val rows: Int,
   }
   // uncomment to debug places where specialization fails
 //  checkIsSpecialized()
+//implicit def zipMap[V, R: ClassTag]: CanZipMapValuesDenseMatrix[V, R] = new CanZipMapValuesDenseMatrix[V, R]
+
+
+  def zip[U: ClassTag](that : DenseMatrix[U]) : DenseMatrix[(V,U)] = {
+    val czmp = implicitly[CanZipMapHeterogeneousValues[DenseMatrix[V], V,  DenseMatrix[U], U,(V,U),DenseMatrix[(V,U)] ]]
+    czmp.map(this , that , (x, y) => (x,y))
+  }
 
 }
 
@@ -1010,10 +1017,36 @@ with MatrixConstructors[DenseMatrix] {
     }
   }
 
+
   implicit def zipMap[V, R: ClassTag]: CanZipMapValuesDenseMatrix[V, R] = new CanZipMapValuesDenseMatrix[V, R]
   implicit val zipMap_d: CanZipMapValuesDenseMatrix[Double, Double] = new CanZipMapValuesDenseMatrix[Double, Double]
   implicit val zipMap_f: CanZipMapValuesDenseMatrix[Float, Float] = new CanZipMapValuesDenseMatrix[Float, Float]
   implicit val zipMap_i: CanZipMapValuesDenseMatrix[Int, Int] = new CanZipMapValuesDenseMatrix[Int, Int]
+
+  class CanZipMapHeterogeneousValuesMatrix[V, U , RV: ClassTag]
+    extends CanZipMapHeterogeneousValues[DenseMatrix[V], V,DenseMatrix[U], U, RV, DenseMatrix[RV]] {
+
+    def create(rows: Int, cols: Int) = DenseMatrix.create(rows, cols, new Array[RV](rows * cols), 0, rows)
+
+    /**Maps all corresponding values from the two collection. */
+    def map(from: DenseMatrix[V], from2: DenseMatrix[U], fn: (V, U) => RV) = {
+      require(from.rows == from2.rows, "Vector row dimensions must match!")
+      require(from.cols == from2.cols, "Vector col dimensions must match!")
+      val result = create(from.rows, from.cols)
+      var i = 0
+      while (i < from.rows) {
+        var j = 0
+        while (j < from.cols) {
+          result(i, j) = fn(from(i, j), from2(i, j))
+          j += 1
+        }
+        i += 1
+      }
+      result
+    }
+  }
+
+  implicit def zipMapHeterogeneous[V,U, R: ClassTag]: CanZipMapHeterogeneousValuesMatrix[V,U, R] = new CanZipMapHeterogeneousValuesMatrix[V,U, R]
 
   class CanZipMapKeyValuesDenseMatrix[@spec(Double, Int, Float, Long) V, @specialized(Int, Double) RV: ClassTag]
     extends CanZipMapKeyValues[DenseMatrix[V], (Int, Int), V, RV, DenseMatrix[RV]] {

@@ -85,3 +85,17 @@ object CanZipMapValues {
   // </editor-fold>
 
 }
+
+/**
+  * Marker for being able to zip two collection objects (FromL[VL] and FromR[VR]) and map the values to a new collection (To[RV]).
+  * Differently from CanZipMapHeterogeneousValues, the two types of the operands can be different
+  *
+  * @author jmaf
+  */
+
+trait CanZipMapHeterogeneousValues[FromL,  VL, FromR , VR , RV, +To] {
+
+  /** Maps all corresponding values from the two collections. */
+  def map(from: FromL, from2: FromR, fn : (VL,VR)=>RV): To
+
+}
