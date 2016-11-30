@@ -240,7 +240,10 @@ class DenseVector[@spec(Double, Int, Float, Long) V](val data: Array[V],
   protected def writeReplace(): Object = {
     new DenseVector.SerializedForm(data, offset, stride, length)
   }
-
+  def zip[U: ClassTag](that : DenseVector[U]) : DenseVector[(V,U)] = {
+    val czmp = implicitly[CanZipMapHeterogeneousValues[DenseVector[V], V,  DenseVector[U], U,(V,U),DenseVector[(V,U)] ]]
+    czmp.map(this , that , (x, y) => (x,y))
+  }
 }
 
 
@@ -596,6 +599,28 @@ object DenseVector extends VectorConstructors[DenseVector]
   implicit val zipMap_d: CanZipMapValuesDenseVector[Double, Double] = new CanZipMapValuesDenseVector[Double, Double]
   implicit val zipMap_f: CanZipMapValuesDenseVector[Float, Float] = new CanZipMapValuesDenseVector[Float, Float]
   implicit val zipMap_i: CanZipMapValuesDenseVector[Int, Int] = new CanZipMapValuesDenseVector[Int, Int]
+
+  class CanZipMapHeterogeneousValuesDenseVector[V, U , RV: ClassTag]
+    extends CanZipMapHeterogeneousValues[DenseVector[V], V,DenseVector[U], U, RV, DenseVector[RV]] {
+    def create(length : Int) = DenseVector(new Array[RV](length))
+
+    /**Maps all corresponding values from the two collection. */
+    def map(from: DenseVector[V], from2: DenseVector[U], fn: (V, U) => RV): DenseVector[RV] = {
+      require(from.length == from2.length, s"Vectors must have same length")
+      val result = create(from.length)
+      var i = 0
+      while (i < from.length) {
+        result.data(i) = fn(from(i), from2(i))
+        i += 1
+      }
+      result
+    }
+  }
+
+  implicit def zipMapHeterogeneous[V,U, R: ClassTag]: CanZipMapHeterogeneousValuesDenseVector[V,U, R] = new CanZipMapHeterogeneousValuesDenseVector[V,U, R]
+
+
+
 
   class CanZipMapKeyValuesDenseVector[@spec(Double, Int, Float, Long) V, @spec(Int, Double) RV:ClassTag] extends CanZipMapKeyValues[DenseVector[V],Int, V,RV,DenseVector[RV]] {
     def create(length : Int) = DenseVector(new Array[RV](length))
